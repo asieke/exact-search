@@ -8,11 +8,19 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asieke/exact-search.git"
+  },
+  "bugs": {
+    "url": "https://github.com/asieke/exact-search/issues"
+  },
+  "homepage": "https://github.com/asieke/exact-search#readme",
   "scripts": {
     "build": "tsup",
     "test": "vitest"
   },
-  "author": "",
+  "author": "Alex Sieke",
   "license": "ISC",
   "devDependencies": {
     "tsup": "^7.2.0",
