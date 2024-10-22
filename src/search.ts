@@ -1,27 +1,27 @@
-export interface SearchResult<R extends { matches: any; results: any }> {
-  matches: Partial<R['matches']>;
-  results: R['results'];
+export interface SearchResult<R extends { match: any; data: any }> {
+  // Updated from results to data
+  match: { [K in keyof R['match']]?: { data: string; index: number } };
+  data: R['data']; // Updated from results to data
   score: number;
 }
 
-interface ExactSearchParams<R extends { matches: any; results: any }> {
+interface ExactSearchParams<R extends { match: any; data: any }> {
+  // Updated from results to data
   data: Array<Record<string, any>>;
-  matchFields: Array<keyof R['matches']>;
-  resultFields: Array<keyof R['results']>;
+  matchFields: Array<keyof R['match']>;
+  dataFields: Array<keyof R['data']>; // Updated from resultFields to dataFields
 }
 
-/**
- * ExactSearch class performs exact search operations on provided data.
- */
-export class ExactSearch<R extends { matches: any; results: any }> {
+export class ExactSearch<R extends { match: any; data: any }> {
+  // Updated from results to data
   private data: Array<Record<string, any>>;
-  private matchFields: Array<keyof R['matches']>;
-  private resultFields: Array<keyof R['results']>;
+  private matchFields: Array<keyof R['match']>;
+  private dataFields: Array<keyof R['data']>; // Updated from resultFields to dataFields
 
   constructor(params: ExactSearchParams<R>) {
     this.data = params.data;
     this.matchFields = params.matchFields;
-    this.resultFields = params.resultFields;
+    this.dataFields = params.dataFields; // Updated from resultFields to dataFields
   }
 
   /**
@@ -35,7 +35,7 @@ export class ExactSearch<R extends { matches: any; results: any }> {
     const regex = new RegExp(`\\b${this.escapeRegExp(query)}`, 'i');
 
     this.data.forEach((item) => {
-      const matches: Partial<R['matches']> = {};
+      const matches: Partial<R['match']> = {};
       let score = 0;
 
       this.matchFields.forEach((field) => {
@@ -47,11 +47,11 @@ export class ExactSearch<R extends { matches: any; results: any }> {
         const match = fieldValue.match(regex);
         if (match) {
           const startIndex = match.index as number;
-          const substring = fieldValue.substring(
-            startIndex,
-            Math.min(startIndex + 30, fieldValue.length)
-          );
-          matches[field] = substring;
+
+          matches[field] = {
+            data: fieldValue,
+            index: startIndex,
+          };
 
           // Calculate score based on number of matches and field length
           const count = (fieldValue.match(regex) || []).length;
@@ -61,15 +61,16 @@ export class ExactSearch<R extends { matches: any; results: any }> {
       });
 
       if (Object.keys(matches).length > 0) {
-        const resultData: Partial<R['results']> = {};
-        this.resultFields.forEach((field) => {
+        const resultData: Partial<R['data']> = {}; // Updated from results to data
+        this.dataFields.forEach((field) => {
+          // Updated from resultFields to dataFields
           resultData[field] = item[field as keyof typeof item];
         });
 
         results.push({
-          matches: matches as R['matches'],
+          match: matches as R['match'],
           score,
-          results: resultData as R['results'],
+          data: resultData as R['data'], // Updated from results to data
         });
       }
     });
@@ -96,7 +97,7 @@ export class ExactSearch<R extends { matches: any; results: any }> {
  * @param params Parameters for initializing the ExactSearch client.
  * @returns An instance of ExactSearch.
  */
-export function createClient<R extends { matches: any; results: any }>(
+export function createClient<R extends { match: any; data: any }>(
   params: ExactSearchParams<R>
 ): ExactSearch<R> {
   return new ExactSearch<R>(params);

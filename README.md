@@ -16,13 +16,64 @@ The `createClient` function is used to initialize the search client. It requires
 
 - `data`: An array of objects that you want to search through.
 - `matchFields`: An array of strings specifying which fields in the data should be indexed for searching.
-- `resultFields`: An array of strings specifying which fields should be included in the search results.
+- `dataFields`: An array of strings specifying which fields should be included in the search results.
 
 ## API Parameters
 
 - `search(query: string, limit: number)`: Performs a search on the indexed data.
   - `query`: A string representing the search term.
   - `limit`: A number specifying the maximum number of results to return.
+
+## API Response
+
+The search results are returned as an array of objects, each containing the following properties:
+
+| Property | Type   | Contents/Structure                               | Description                                                                                                                                                                                                                                                   |
+| -------- | ------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `match`  | Object | `{ fieldName: { data: string, index: number } }` | An object containing the fields that matched the search query. Each field includes the entire original field value and the index where the match starts.                                                                                                      |
+| `data`   | Object | `{ fieldName: fieldValue }`                      | An object containing the fields specified in `dataFields` from the original data.                                                                                                                                                                             |
+| `score`  | Number | -                                                | A number representing the relevance of the result. The score is calculated based on the number of matches found in the `matchFields` and the length of the field. Specifically, it is the ratio of the number of matches to the number of words in the field. |
+
+Example response:
+
+```json
+[
+  {
+    "match": {
+      "name": {
+        "data": "Alice Loves",
+        "index": 6
+      },
+      "bio": {
+        "data": "Loves programming",
+        "index": 0
+      }
+    },
+    "score": 1,
+    "data": {
+      "id": 1,
+      "name": "Alice Loves",
+      "bio": "Loves programming",
+      "age": 30
+    }
+  },
+  {
+    "match": {
+      "bio": {
+        "data": "Loves code",
+        "index": 0
+      }
+    },
+    "score": 0.5,
+    "data": {
+      "id": 4,
+      "name": "Dave",
+      "bio": "Loves code",
+      "age": 35
+    }
+  }
+]
+```
 
 ## Usage (Typescript)
 
@@ -41,11 +92,11 @@ const data = [
 
 // Define the Result type
 type Result = {
-  matches: {
+  match: {
     name: string;
     bio: string;
   };
-  results: {
+  data: {
     id: number;
     name: string;
     bio: string;
@@ -57,11 +108,11 @@ type Result = {
 const index = createClient<Result>({
   data,
   matchFields: ['name', 'bio'],
-  resultFields: ['id', 'name', 'bio', 'age'],
+  dataFields: ['id', 'name', 'bio', 'age'],
 });
 
 // Perform a search
-const searchResults: SearchResult<Result>[] = index.search('Loves', 10);
+const searchResults: SearchResult<Result>[] = index.search('Loves', 2);
 ```
 
 ## Usage (Javascript)
@@ -81,7 +132,7 @@ const data = [
 const index = createClient({
   data,
   matchFields: ['name', 'bio'],
-  resultFields: ['id', 'name', 'bio', 'age'],
+  dataFields: ['id', 'name', 'bio', 'age'],
 });
 
 // Perform a search

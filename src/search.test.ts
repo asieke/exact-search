@@ -1,39 +1,35 @@
-// import { sections } from '../data/sample';
-// import { ExactSearch } from './search';
-// import { expect, test } from 'vitest';
+import { sections } from '../data/sample';
+import { createClient } from './search';
+import { expect, test } from 'vitest';
 
-// const index = new ExactSearch({
-//   data: sections,
-//   indexFields: ['title', 'content'] as const,
-//   resultFields: ['title', 'pageSlug', 'slug'],
-// });
+type Result = {
+  match: {
+    title: string;
+    content: string;
+  };
+  data: {
+    title: string;
+    pageSlug: string;
+    slug: string;
+  };
+};
 
-// //create a test in vitest that will test the search function
+const index = createClient<Result>({
+  data: sections,
+  matchFields: ['title', 'content'] as const,
+  dataFields: ['title', 'pageSlug', 'slug'],
+});
 
-// test('[search]: npm', () => {
-//   const results = index.search('endpoint');
-//   expect(results[0].match?.title).toEqual('Endpoint');
-//   expect(results[0].result.pageSlug).toEqual('weather');
-// });
+//create a test in vitest that will test the search function
 
-// test('[search]: api doc', () => {
-//   const results = index.search('api doc'); // console.log(results);
-//   expect(results[0].match?.title).toEqual('API Documentation');
-//   expect(results[0].result.pageSlug).toEqual('api-item');
-// });
+test('[search]: npm', () => {
+  const results = index.search('endpoint');
+  expect(results[0].match.title?.data).toEqual('Endpoint');
+  expect(results[0].data.pageSlug).toEqual('weather');
+});
 
-// test('[search]: api (types)', () => {
-//   const index = new ExactSearch({
-//     data: sections, // sections is of type Record<string, string>[]
-//     indexFields: ['title', 'content'] as const,
-//     resultFields: ['title', 'pageSlug', 'slug'] as const,
-//   });
-
-//   const results = index.search('api');
-
-//   // Assertions
-//   expect(results).toHaveLength(10);
-//   expect(results[0].match?.title).toEqual('API Base URL');
-//   expect(results[0].result.slug).toEqual('api-base-url');
-//   expect(results[0].score).toEqual(0.5641025641025641);
-// });
+test('[search]: api doc', () => {
+  const results = index.search('api doc'); // console.log(results);
+  expect(results[0].match?.title?.data).toEqual('Todo List Search API Documentation');
+  expect(results[0].data.pageSlug).toEqual('api-item');
+});

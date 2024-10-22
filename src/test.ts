@@ -1,12 +1,13 @@
-import { createClient, type SearchResult } from '../dist/index';
+// import { createClient, type SearchResult } from '../dist/index';
+import { createClient, type SearchResult } from './search';
 
 // Define the Result type
 type Result = {
-  matches: {
+  match: {
     name: string;
     bio: string;
   };
-  results: {
+  data: {
     id: number;
     name: string;
     bio: string;
@@ -26,10 +27,10 @@ const data = [
 const index = createClient<Result>({
   data,
   matchFields: ['name', 'bio'],
-  resultFields: ['id', 'name', 'bio', 'age'],
+  dataFields: ['id', 'name', 'bio', 'age'],
 });
 
 // Perform a search
-const searchResults: SearchResult<Result>[] = index.search('Loves', 10);
+const searchResults: SearchResult<Result>[] = index.search('Loves', 3);
 
-console.log(searchResults[0]);
+console.log(JSON.stringify(searchResults, null, 2));
