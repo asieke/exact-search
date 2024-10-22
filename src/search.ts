@@ -1,70 +1,103 @@
-export type Result<
-  TIndexFields extends readonly string[],
-  TResultFields extends readonly string[]
-> = {
-  match: Partial<Record<TIndexFields[number], string>> | null;
+export interface SearchResult<R extends { matches: any; results: any }> {
+  matches: Partial<R['matches']>;
+  results: R['results'];
   score: number;
-  result: Record<TResultFields[number], string>;
-};
+}
 
-export class ExactSearch<
-  TIndexFields extends readonly string[],
-  TResultFields extends readonly string[]
-> {
-  private data: Record<string, string>[];
-  private indexFields: TIndexFields;
-  private resultFields: TResultFields;
+interface ExactSearchParams<R extends { matches: any; results: any }> {
+  data: Array<Record<string, any>>;
+  matchFields: Array<keyof R['matches']>;
+  resultFields: Array<keyof R['results']>;
+}
 
-  constructor(params: {
-    data: Record<string, string>[];
-    indexFields: TIndexFields;
-    resultFields: TResultFields;
-  }) {
+/**
+ * ExactSearch class performs exact search operations on provided data.
+ */
+export class ExactSearch<R extends { matches: any; results: any }> {
+  private data: Array<Record<string, any>>;
+  private matchFields: Array<keyof R['matches']>;
+  private resultFields: Array<keyof R['results']>;
+
+  constructor(params: ExactSearchParams<R>) {
     this.data = params.data;
-    this.indexFields = params.indexFields;
+    this.matchFields = params.matchFields;
     this.resultFields = params.resultFields;
   }
 
-  public search(query: string, limit: number = 10): Result<TIndexFields, TResultFields>[] {
-    const results: Result<TIndexFields, TResultFields>[] = [];
+  /**
+   * Performs the search operation.
+   * @param query The search string.
+   * @param limit The maximum number of results to return.
+   * @returns An array of search results.
+   */
+  search(query: string, limit: number = 10): SearchResult<R>[] {
+    const results: SearchResult<R>[] = [];
+    const regex = new RegExp(`\\b${this.escapeRegExp(query)}`, 'i');
 
     this.data.forEach((item) => {
-      let temp: Result<TIndexFields, TResultFields> = {
-        match: null,
-        score: 0,
-        result: {} as Record<TResultFields[number], string>,
-      };
+      const matches: Partial<R['matches']> = {};
+      let score = 0;
 
-      this.indexFields.forEach((field) => {
-        const fieldValue = item[field];
-        if (!fieldValue) return;
+      this.matchFields.forEach((field) => {
+        const fieldValue = item[field as keyof typeof item];
+        if (typeof fieldValue !== 'string') {
+          return;
+        }
 
-        const regex = new RegExp(`\\b${query}`, 'i');
         const match = fieldValue.match(regex);
-
         if (match) {
-          const startIndex = match.index!;
-          const count = fieldValue.toLowerCase().split(regex).length - 1;
-          const words = fieldValue.split(' ').length;
+          const startIndex = match.index as number;
+          const substring = fieldValue.substring(
+            startIndex,
+            Math.min(startIndex + 30, fieldValue.length)
+          );
+          matches[field] = substring;
 
-          this.resultFields.forEach((resultField) => {
-            temp.result[resultField as TResultFields[number]] = item[resultField];
-          });
-
-          const substr = fieldValue.substring(startIndex, startIndex + 30);
-          temp.match = temp.match || {};
-          temp.match[field as TIndexFields[number]] = substr; // Type assertion added here
-          temp.score += count / words;
+          // Calculate score based on number of matches and field length
+          const count = (fieldValue.match(regex) || []).length;
+          const words = fieldValue.split(/\s+/).length;
+          score += count / words;
         }
       });
 
-      if (temp.match) {
-        results.push(temp);
+      if (Object.keys(matches).length > 0) {
+        const resultData: Partial<R['results']> = {};
+        this.resultFields.forEach((field) => {
+          resultData[field] = item[field as keyof typeof item];
+        });
+
+        results.push({
+          matches: matches as R['matches'],
+          score,
+          results: resultData as R['results'],
+        });
       }
     });
 
+    // Sort results by score in descending order
     results.sort((a, b) => b.score - a.score);
 
+    // Return limited results
     return results.slice(0, limit);
   }
+
+  /**
+   * Escapes special characters in a string for use in a regular expression.
+   * @param text The input string.
+   * @returns The escaped string.
+   */
+  private escapeRegExp(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+}
+
+/**
+ * Factory function to create an ExactSearch client.
+ * @param params Parameters for initializing the ExactSearch client.
+ * @returns An instance of ExactSearch.
+ */
+export function createClient<R extends { matches: any; results: any }>(
+  params: ExactSearchParams<R>
+): ExactSearch<R> {
+  return new ExactSearch<R>(params);
 }

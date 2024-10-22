@@ -1,25 +1,8 @@
 "use strict";
 var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -37,49 +20,78 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
-  ExactSearch: () => ExactSearch
+  ExactSearch: () => ExactSearch,
+  createClient: () => createClient
 });
 module.exports = __toCommonJS(src_exports);
 
 // src/search.ts
 var ExactSearch = class {
-  constructor({ data, indexFields, resultFields }) {
-    this.data = data;
-    this.indexFields = indexFields;
-    this.resultFields = resultFields;
+  constructor(params) {
+    this.data = params.data;
+    this.matchFields = params.matchFields;
+    this.resultFields = params.resultFields;
   }
+  /**
+   * Performs the search operation.
+   * @param query The search string.
+   * @param limit The maximum number of results to return.
+   * @returns An array of search results.
+   */
   search(query, limit = 10) {
     const results = [];
+    const regex = new RegExp(`\\b${this.escapeRegExp(query)}`, "i");
     this.data.forEach((item) => {
-      let temp = { match: null, score: 0, result: {} };
-      this.indexFields.forEach((field) => {
-        const regex = new RegExp(`\\b${query}`, "i");
-        const match = item[field].match(regex);
+      const matches = {};
+      let score = 0;
+      this.matchFields.forEach((field) => {
+        const fieldValue = item[field];
+        if (typeof fieldValue !== "string") {
+          return;
+        }
+        const match = fieldValue.match(regex);
         if (match) {
           const startIndex = match.index;
-          const count = item[field].toLowerCase().split(regex).length - 1;
-          const words = item[field].split(" ").length;
-          this.resultFields.forEach((resultField) => {
-            temp.result[resultField] = item[resultField];
-          });
-          const substr = item[field].substring(startIndex, startIndex + 30);
-          temp.match = __spreadProps(__spreadValues({}, temp.match), { [field]: substr });
-          temp.score += count / words;
+          const substring = fieldValue.substring(
+            startIndex,
+            Math.min(startIndex + 30, fieldValue.length)
+          );
+          matches[field] = substring;
+          const count = (fieldValue.match(regex) || []).length;
+          const words = fieldValue.split(/\s+/).length;
+          score += count / words;
         }
       });
-      if (temp.match) {
-        results.push(temp);
+      if (Object.keys(matches).length > 0) {
+        const resultData = {};
+        this.resultFields.forEach((field) => {
+          resultData[field] = item[field];
+        });
+        results.push({
+          matches,
+          score,
+          results: resultData
+        });
       }
     });
     results.sort((a, b) => b.score - a.score);
-    if (results.length > limit) {
-      return results.slice(0, limit);
-    }
-    return results;
+    return results.slice(0, limit);
+  }
+  /**
+   * Escapes special characters in a string for use in a regular expression.
+   * @param text The input string.
+   * @returns The escaped string.
+   */
+  escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 };
+function createClient(params) {
+  return new ExactSearch(params);
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  ExactSearch
+  ExactSearch,
+  createClient
 });
 //# sourceMappingURL=index.js.map

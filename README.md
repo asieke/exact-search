@@ -1,10 +1,6 @@
 # Exact Search
 
-**Version:** 1.1.0
-
-## Description
-
-`exact-search` is a lightweight library designed to perform exact searches on a JSON array. It allows you to specify fields to index and fields to return in the search results, making it flexible for various use cases.
+`exact-search` is a lightweight, 0-dependency library designed to perform exact searches on a JSON array. It allows you to specify fields to index and fields to return in the search results, making it flexible for various use cases.
 
 ## Installation
 
@@ -14,101 +10,82 @@ To install the package, use npm:
 npm install exact-search
 ```
 
-## Usage
+## Constructor
+
+The `createClient` function is used to initialize the search client. It requires an object with the following properties:
+
+- `data`: An array of objects that you want to search through.
+- `matchFields`: An array of strings specifying which fields in the data should be indexed for searching.
+- `resultFields`: An array of strings specifying which fields should be included in the search results.
+
+## API Parameters
+
+- `search(query: string, limit: number)`: Performs a search on the indexed data.
+  - `query`: A string representing the search term.
+  - `limit`: A number specifying the maximum number of results to return.
+
+## Usage (Typescript)
 
 Here's a basic example of how to use `exact-search`:
 
 ```typescript
-import { ExactSearch } from 'exact-search';
+import { createClient, SearchResult } from 'exact-search';
 
-// Sample data
+// Define the data
 const data = [
-  {
-    title: 'Introduction to the API',
-    content: 'Welcome to the API documentation for our project...',
-    pageSlug: 'introduction',
-    slug: 'introduction-to-the-api',
-  },
-  {
-    title: 'Overview',
-    content: 'Our API provides a robust set of endpoints...',
-    pageSlug: 'overview',
-    slug: 'overview',
-  },
-  // Add more items as needed
+  { id: 1, name: 'Alice Loves', bio: 'Loves programming', age: 30, isActive: true },
+  { id: 2, name: 'Bob', bio: 'Enjoys hiking', age: 25, isActive: false },
+  { id: 3, name: 'Charlie', bio: 'Loves to travel', age: 35, isActive: true },
+  { id: 4, name: 'Dave', bio: 'Loves code', age: 35, isActive: true },
 ];
 
-// Initialize ExactSearch with generics
-const searchIndex = new ExactSearch<['title', 'content'], ['title', 'pageSlug', 'slug']>({
+// Define the Result type
+type Result = {
+  matches: {
+    name: string;
+    bio: string;
+  };
+  results: {
+    id: number;
+    name: string;
+    bio: string;
+    age: number;
+  };
+};
+
+// Create the search client without specifying generic parameters
+const index = createClient<Result>({
   data,
-  indexFields: ['title', 'content'],
-  resultFields: ['title', 'pageSlug', 'slug'],
+  matchFields: ['name', 'bio'],
+  resultFields: ['id', 'name', 'bio', 'age'],
 });
 
 // Perform a search
-const results = searchIndex.search('API', 5);
-console.log(results);
+const searchResults: SearchResult<Result>[] = index.search('Loves', 10);
 ```
 
-## API
+## Usage (Javascript)
 
-### `ExactSearch`
+```javascript
+import { createClient } from 'exact-search';
 
-#### Constructor
+// Define the data
+const data = [
+  { id: 1, name: 'Alice Loves', bio: 'Loves programming', age: 30, isActive: true },
+  { id: 2, name: 'Bob', bio: 'Enjoys hiking', age: 25, isActive: false },
+  { id: 3, name: 'Charlie', bio: 'Loves to travel', age: 35, isActive: true },
+  { id: 4, name: 'Dave', bio: 'Loves code', age: 35, isActive: true },
+];
 
-```typescript
-new ExactSearch<IndexFields extends string[], ResultFields extends string[]>({
+// Create the search client without specifying generic parameters
+const index = createClient({
   data,
-  indexFields,
-  resultFields,
-}: Params<IndexFields, ResultFields>)
+  matchFields: ['name', 'bio'],
+  resultFields: ['id', 'name', 'bio', 'age'],
+});
+
+// Perform a search
+const searchResults = index.search('Loves', 10);
+
+console.log(searchResults);
 ```
-
-- **data**: An array of objects to search through.
-- **indexFields**: An array of strings specifying which fields to index for searching.
-- **resultFields**: An array of strings specifying which fields to include in the search results.
-
-#### Methods
-
-- **search(query: string, limit?: number): Result[]**
-
-  Performs a search on the indexed fields.
-
-  - **query**: The search term.
-  - **limit**: Optional. The maximum number of results to return. Defaults to 10.
-
-  Returns an array of results, each containing:
-
-  - **match**: An object with the matched fields and their respective substrings.
-  - **score**: A number representing the relevance of the result.
-  - **result**: An object containing the specified result fields.
-
-## Development
-
-To build the project, run:
-
-```bash
-npm run build
-```
-
-To run tests, use:
-
-```bash
-npm test
-```
-
-## License
-
-This project is licensed under the ISC License.
-
-## Author
-
-Alex Sieke
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
-
-## Acknowledgments
-
-- Thanks to the contributors of the open-source community for their invaluable support and resources.

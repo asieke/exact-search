@@ -1,2 +1,2 @@
-export { ExactSearch } from './search';
-export type { Result } from './search';
+export { ExactSearch, createClient } from './search';
+export type { SearchResult } from './search';

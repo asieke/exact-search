@@ -1,6 +1,6 @@
 {
   "name": "exact-search",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A search to return items from a JSON array that match exactly",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
